@@ -1,5 +1,25 @@
 # General infrastructure for ML algorithms
 
+import numpy as np
+from sklearn.metrics import accuracy_score
+
+class MLData:
+    def __init__(self, fn):
+        self.X = []
+        self.Y = []
+        
+        # Load from file fn
+        f = open(fn)
+
+        for l in f:
+            nums = l.split()
+            x = map(float, nums[:-1])
+            y = int(nums[-1])
+            # convert 0 class to -1
+            if y == 0:
+                y = -1
+            self.X.append(x)
+            self.Y.append(y)
 
 # Abstract class for classifiers
 class MLClassifier:
@@ -7,13 +27,17 @@ class MLClassifier:
     # possible parameters 
     def __init__(self):
         pass
-    
-    def getPerformance(self, testData):
+
+    def predict(self, testData):
         pass
+    def getPerformance(self, testData):
+        predictedY = self.predict(testData)
+        return accuracy_score(testData.Y, predictedY)
     
     def train(self, params, trainingData):
         """ Given a dictionary of params it trains the ML accordingly"""
-    
+        pass
+            
 # Test all hyperparameters in range and returns best
 class Learner:
     def __init__(self, classifierClass, trainData, devData, testData, logFile):
@@ -51,8 +75,9 @@ class Learner:
         # and test it on the test data
         
         # return performance
+        pass
         
         
         
 if __name__ == '__main__':
-    print("Hello, this is a ML program!")
+    print "Hello, this is a ML program!"
