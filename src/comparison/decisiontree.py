@@ -20,7 +20,7 @@ def trainOnAllData():
     f.write(str(t.getPerformance(testData)) + '\n')
     f.close()
 
-def miniTest()
+def miniTest():
     trainData = MLData('miniTrainData')
     testData =  MLData('miniTestData')
     print
