@@ -53,5 +53,5 @@ def miniTest():
 
 
 if __name__ == '__main__':
-    trainOnAllData()
-    #miniTest()
+    #trainOnAllData()
+    miniTest()
