@@ -32,7 +32,7 @@ def trainOnAllData():
     perf =  t.getPerformance(testData)
     testTime = time.time() - trainTimeOffset
 
-    logOnFile("mini-test-dec-tree", perf, trainTime, testTime)
+    logOnFile("decision-tree-time-accuracy", perf, trainTime, testTime)
 
 def miniTest():
     trainData = MLData('miniTrainData')
