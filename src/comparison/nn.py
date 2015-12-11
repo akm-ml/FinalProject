@@ -1,4 +1,4 @@
-from classifierutils import MLClassifier, MLData
+from classifierutils import MLClassifier, MLData, miniTest, globalTest
 import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 
@@ -12,9 +12,5 @@ class NNClassifier(MLClassifier):
         return self.neigh.predict(testData.X)
 
 if __name__ == '__main__':
-    trainData = MLData('miniTrainData')
-    testData =  MLData('miniTestData')
-    
-    nn = NNClassifier()
-    nn.train({}, trainData)
-    print nn.getPerformance(testData)
+    #miniTest("mini-test-nn", NNClassifier)
+    globalTest("nn-time-accuracy", NNClassifier)
