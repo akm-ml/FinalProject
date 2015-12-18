@@ -1,7 +1,7 @@
 from classifierutils import MLClassifier, MLData, miniTest, globalTest
 from sklearn.naive_bayes import GaussianNB
 
-class NBClassifier(MLClassifier):
+class GaussianClassifier(MLClassifier):
     def train(self, params, trainingData):
         self.clf = GaussianNB()
         self.clf = self.clf.fit(trainingData.X, trainingData.Y)
@@ -9,5 +9,5 @@ class NBClassifier(MLClassifier):
         return self.clf.predict(testData.X)
 
 if __name__ == '__main__':
-    #miniTest("mini-test-nb", NBClassifier)
-    globalTest("nb-time-accuracy", NBClassifier)
+    #miniTest("mini-test-nb", GaussianClassifier)
+    globalTest("nb-time-accuracy", GaussianClassifier)
