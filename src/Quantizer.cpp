@@ -142,22 +142,22 @@ double bayesProbability(map<string,int> binProbabilities, vector<double> classPr
 		}
 	}
 	double probabilityOfCorrectIdentification = (double) c00 + (double) c11;
-	probabilityOfCorrectIdentification = probabilityOfCorrectIdentification/estimateSet.getSet().size();
+	probabilityOfCorrectIdentification = probabilityOfCorrectIdentification/estimateSet->getSet().size();
 	return probabilityOfCorrectIdentification;
 }
 
-vector<vector<double> > initialIntervals(int L, DataSet trainingSet) {
-	trainingSet.sortComponentSet(); // we have a sorted list of component sets here
-	int N = trainingSet.getSet().size(); // this is to determine N in the notes
+vector<vector<double> > initialIntervals(int L, DataSet *trainingSet) {
+	trainingSet->sortComponentSet(); // we have a sorted list of component sets here
+	int N = trainingSet->getSet().size(); // this is to determine N in the notes
 	vector<double> zero = {0}; // this initializes the left boundary for the first quant interval at 0 for all 5 dims
 	vector<vector<double> > intervalLeftBounds = {zero,zero,zero,zero,zero}; // initialize at 0 for all 5 dimensions?
 	for (int k = 1 ; k < L ; k++) { // iterates through the bounds, partitions into L
 		int index = (k*N/L)+1;
-		intervalLeftBounds.at(0).push_back(trainingSet.getComponent(1).at(index));
-		intervalLeftBounds.at(1).push_back(trainingSet.getComponent(2).at(index));
-		intervalLeftBounds.at(2).push_back(trainingSet.getComponent(3).at(index));
-		intervalLeftBounds.at(3).push_back(trainingSet.getComponent(4).at(index));
-		intervalLeftBounds.at(4).push_back(trainingSet.getComponent(5).at(index));
+		intervalLeftBounds.at(0).push_back(trainingSet->getComponent(1).at(index));
+		intervalLeftBounds.at(1).push_back(trainingSet->getComponent(2).at(index));
+		intervalLeftBounds.at(2).push_back(trainingSet->getComponent(3).at(index));
+		intervalLeftBounds.at(3).push_back(trainingSet->getComponent(4).at(index));
+		intervalLeftBounds.at(4).push_back(trainingSet->getComponent(5).at(index));
 	}
 	return intervalLeftBounds;
 }
@@ -165,12 +165,12 @@ vector<vector<double> > initialIntervals(int L, DataSet trainingSet) {
 // TODO
 // this is one iteration of the M optimizations we will run to optimize the quantizer
 // this should return a quantizer???
-double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet trainingSet, vector<double> classPriors) {
+double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet *trainingSet, DataSet *estimateSet, vector<double> classPriors) {
 	int j = rand() % 5 + 1; // random component
 
 	int k = rand() % L + 1; // random bin
 
-	vector<double> componentJ = trainingSet.getComponent(j); // gets the component vector
+	vector<double> componentJ = trainingSet->getComponent(j); // gets the component vector
 
 	double bnew = componentJ.at(k); // gets the bin
 
@@ -196,8 +196,8 @@ double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet 
 	for (int m = 0 ; m <= 2*M ; m++) {
 		bnew = bnew + delta; // perturbs the bound value appropriately
 		// need to put it into the vector
-		map<string,int> binProbabilities = calculateBinProbabilities(&trainingSet, initialIntervals);//calculateBinProbabilities();
-		double probabilityOfCorrectIdentification = bayesProbability(binProbabilities, classPriors, &estimateSet, initialIntervals);
+		map<string,int> binProbabilities = calculateBinProbabilities(trainingSet, initialIntervals);//calculateBinProbabilities();
+		double probabilityOfCorrectIdentification = bayesProbability(binProbabilities, classPriors, estimateSet, initialIntervals);
 		// save expected gain, if higher
 	}
 	return 0;
@@ -222,9 +222,9 @@ void quantize(int L, int M) {
 
 	// runs greedy algorithm M times
 	for (int i = 0 ; i < M ; i++) {
-		prCorrectForL = greedyAlgorithm(initialLeftBounds,L,estimateSet);
+		//prCorrectForL = greedyAlgorithm(initialLeftBounds,L,&estimateSet);
 		if (prLbest == 0) {
-			Lbest = Quantizer(L, prLbest,classPriors.at(0), classPriors.at(1),)
+			//Lbest = Quantizer(L, prLbest, classPriors.at(0), classPriors.at(1),);
 		}
 	}
 
