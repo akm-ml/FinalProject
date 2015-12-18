@@ -5,9 +5,13 @@ from sklearn.metrics import accuracy_score
 import time
 
 class MLData:
-    def __init__(self, fn):
+        
+    def __init__(self, fn = ""):
         self.X = []
         self.Y = []
+
+        if fn == "":
+            return
 
         # Load from file fn
         f = open(fn)
@@ -21,6 +25,13 @@ class MLData:
                 y = -1
             self.X.append(x)
             self.Y.append(y)
+
+    def addRow(self, x, y):
+        self.X.append(x)
+        self.Y.append(y)
+
+    def size(self):
+        return len(self.X)
 
 # Abstract class for classifiers
 class MLClassifier:
