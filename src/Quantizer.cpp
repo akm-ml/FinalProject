@@ -205,20 +205,16 @@ double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet 
 
 //TODO, this is a rough outline of how we want quantizer to work
 // I am having pointer problems....
-void quantize(int L, int M) {
-	// READ FILE
-	DataSet trainingSet();
-	DataSet estimateSet();
-	DataSet testingSet();
-	// THEN WE SORT THE COMPONENT SETS FOR ALL OF THESE?
-	double prCorrectForL = 0;
+void quantize(int L, int M, DataSet *trainingSet, DataSet *estimateSet) {
+
+	//double prCorrectForL = 0;
 	double prLbest = 0;
 
 	//CALCULATE CLASS PRIORS
 	vector<double> classPriors = calculatePriors(trainingSet);
 
 	//gets initial intervals
-	vector<vector<double> > initialLeftBounds = initialIntervals(L,trainingSet);
+	vector<vector<double> > initialLeftBounds = initialIntervals(L, trainingSet);
 
 	// runs greedy algorithm M times
 	for (int i = 0 ; i < M ; i++) {
