@@ -20,6 +20,7 @@ public:
 	DataSet(); // ideally this will read a file and create a vector of DataPoint from the file
 	virtual ~DataSet();
 	vector<DataPoint> getSet();
+	void setSet(vector<DataPoint> dpVect);
 	void createComponentSet();
 	vector<double> getComponent(int i); // will return the ith component vector
 	void sortComponentSet();

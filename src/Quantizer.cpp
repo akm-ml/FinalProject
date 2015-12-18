@@ -10,23 +10,125 @@
 #include <random>
 #include <math.h>
 #include <string>
+#include <fstream>
+#include <sstream>
 
-Quantizer::Quantizer(int L, double pr, double prc0, double prc1, map<string,int> binProbabilities) {
+Quantizer::Quantizer(int L, double pr, vector<double> priorProb, map<string,int> binProbabilitiesClass0, map<string,int> binProbabilitiesClass1) {
 	quantizedLevelsPerComponent = L;
 	probabilityOfCorrectIdentification = pr;
-	priorClass0 = prc0;
-	priorClass1 = prc1;
-	decisionRule = binProbabilities; //the map
+	priors = priorProb;
+	decisionRuleClass0 = binProbabilitiesClass0; //the map
+	decisionRuleClass1 = binProbabilitiesClass1;
 }
 
 Quantizer::~Quantizer() {
 	// TODO
 }
 
-bool readFile() {
+void Quantizer::reSet(int L, double pr, vector<double> priorProb, map<string,int> binProbabilitiesClass0, map<string,int> binProbabilitiesClass1) {
+	quantizedLevelsPerComponent = L;
+	probabilityOfCorrectIdentification=pr;
+	priors = priorProb;
+	decisionRuleClass0 = binProbabilitiesClass0;
+	decisionRuleClass1 = binProbabilitiesClass1;
+}
+
+double Quantizer::getProb() {
+	return probabilityOfCorrectIdentification;
+}
+
+void Quantizer::setFinalTestCorrectness(double ftc) {
+	finalTestCorrectness = ftc;
+}
+
+vector<double> Quantizer::getPriors() {
+	return priors;
+}
+
+void Quantizer::printQuantizer() {
+	cout << "THIS IS THE DATA FOR THE FINAL QUANTIZER" << endl;
+	cout << "L: " << quantizedLevelsPerComponent << endl;
+	cout << "Probability of correct Id estimate " << probabilityOfCorrectIdentification << endl;
+	cout << "Prior probabilities: " << priors.at(2) << ", " << priors.at(3) << endl;
+	cout << "Left Interval Bounds (Optimized): " << endl;
+	for (unsigned i = 0 ; i < leftIntervalBounds.size() ; i++) {
+		vector<double> component = leftIntervalBounds.at(i);
+		cout << "Component " << i << ": " << endl;
+		for (unsigned j = 0 ; j < component.size(); j++) {
+			cout << component.at(j) << ", " << endl;
+		}
+		cout << "end of component" << endl;
+	}
+	cout << "Final Test on testData correctness: " << finalTestCorrectness << endl;
+}
+
+bool readFile(DataSet *trainingSet, DataSet *estimateSet, DataSet *testingSet) {
+	ifstream file("C:\\Users\\Kelsey\\Desktop\\pr_data.txt");
+
+	string line;
+	if (!file) {
+		cout << "Couldn't read the file" << endl;
+		return 0;
+	}
+	vector<DataPoint> trainingDataVector;
+	vector<DataPoint> estimateDataVector;
+	vector<DataPoint> testingDataVector;
+	int Counter = 0;
+    while (!file.eof()) // reads until the end of th efile
+    {
+
+            vector<double> tempVecFirst; // temporary values to store the first 33333 datapoints of file
+            double tempDataFirst;
+
+            vector<double> tempVecSecond; // temporary values to store the second 33333 datapoints of file
+            double tempDataSecond;
+
+            vector<double> tempVecThird; // temporary values to store the last 33334 datapoints of file
+            double tempDataThird;
+
+            for (int j = 0; j < 6; j++)
+            {
+                if(Counter < 3333333) // First 3,333,333 datapoints
+                {
+                    file  >> tempDataFirst;
+                    tempVecFirst.push_back(tempDataFirst); // store each line into a temporary vector
+                }
+
+                else if((Counter > 3333332) && (Counter < 6666666)) // Second 3,333,333 datapoints
+                {
+                    file >> tempDataSecond;
+                    tempVecSecond.push_back(tempDataSecond); // store each line into a temporary vector
+                }
+
+                else // Last 3,333,334 datapoints
+                {
+                    file >> tempDataThird;
+                    tempVecThird.push_back(tempDataThird); //store each line into a temp vector
+                }
+            }
+
+            if(Counter < 3333333) {
+                 // place into FileInput line by line using the temporary vectors
+            	DataPoint dp = DataPoint({tempVecFirst.at(0),tempVecFirst.at(1),tempVecFirst.at(2),tempVecFirst.at(3),tempVecFirst.at(4)} , tempVecFirst.at(5));
+            	trainingDataVector.push_back(dp);
+            }
+            else if(Counter > 3333332 && Counter < 6666666) {
+            	DataPoint dp = DataPoint({tempVecSecond.at(0),tempVecSecond.at(1),tempVecSecond.at(2),tempVecSecond.at(3),tempVecSecond.at(4)} , tempVecSecond.at(5));
+                estimateDataVector.push_back(dp);
+            }
+            else {
+            	DataPoint dp = DataPoint({tempVecThird.at(0),tempVecThird.at(1),tempVecThird.at(2),tempVecThird.at(3),tempVecThird.at(4)} , tempVecThird.at(5));
+                testingDataVector.push_back(dp);
+            }
+            Counter++;
+
+    }
+    trainingSet->setSet(trainingDataVector);
+    estimateSet->setSet(estimateDataVector);
+    testingSet->setSet(testingDataVector);
 	// this we want to read the data file and create three DataSets, trainingSet, experimentSet and finalSet
 	// will return 1 if it worked, 0 if not
-	return 0;
+	return 1;
 }
 
 double fRand(double fMin, double fMax)
@@ -47,9 +149,12 @@ vector<double> calculatePriors(DataSet *ds) {
 			class1Count++;
 		}
 	}
+	vector<double> retVector = {class0Count,class1Count};
 	class0Count = class0Count/ds->getSet().size();
+	retVector.push_back(class0Count);
 	class1Count = class1Count/ds->getSet().size();
-	return {class0Count,class1Count};
+	retVector.push_back(class1Count);
+	return retVector;
 }
 
 // inputs the quantized bin names and outputs a string of the binkey
@@ -94,20 +199,24 @@ vector<int> getBinNumber(DataPoint dp, vector<vector<double> > intervalLeftBound
 //inputs the training data set and calculates the bin probabilities for that training data
 // by iterating through the data points, finding the quantized bin it is in
 // and ++ the counter in the mapped value of the associated key
-map<string,int> calculateBinProbabilities(DataSet *trainingData, vector<vector<double> > leftIntervalBounds) {
+void calculateBinProbabilities(DataSet *trainingData, vector<vector<double> > leftIntervalBounds, map<string,int> binProbClass0, map<string,int> binProbClass1) {
 	vector<DataPoint> trainingSet = trainingData->getSet();
-	map<string,int> binProb;
 	for (unsigned int i = 0 ; i < trainingSet.size(); i++) {
 		DataPoint dp = trainingSet.at(i);
 		vector<int> binNumber = getBinNumber(dp, leftIntervalBounds); // find out what bin it is in;
 		string binKey = getBinKey(binNumber); // gets the key for the map
-		binProb[binKey]++; // increments the counter in the map
+		if (dp.getTrueClass() == 0) { // increments respective counters
+			binProbClass0[binKey]++;
+		} else {
+			binProbClass1[binKey]++;
+		}
+
 	}
-	return binProb; // returns the map
+
 }
 
 //inputs the map for the decision rule, prior probabilities, trainingSet (the second 2/3 of the data)
-double bayesProbability(map<string,int> binProbabilities, vector<double> classPriors, DataSet *estimateSet, vector<vector<double> > leftIntervalBounds) {
+double bayesProbability(map<string,int> binProbClass0, map<string,int> binProbClass1, vector<double> classPriors, DataSet *estimateSet, vector<vector<double> > leftIntervalBounds) {
 	int c00 = 0;
 	int c01 = 0;
 	int c10 = 0;
@@ -119,9 +228,10 @@ double bayesProbability(map<string,int> binProbabilities, vector<double> classPr
 		trueClass = dp.getTrueClass();
 		vector<int> binNumber = getBinNumber(dp, leftIntervalBounds);
 		string binKey = getBinKey(binNumber);
-		double binProb = (double) binProbabilities[binKey] / estimateSet->getSet().size();
-		double probabilityOfClass0 = classPriors.at(0) * binProb;
-		double probabilityOfClass1 = classPriors.at(1) * binProb;
+		double binGivenClass0 = (double) binProbClass0[binKey] / classPriors.at(0);
+		double binGivenClass1 = (double) binProbClass1[binKey] / classPriors.at(1);
+		double probabilityOfClass0 = classPriors.at(2) * binGivenClass0;
+		double probabilityOfClass1 = classPriors.at(3) * binGivenClass1;
 		if (probabilityOfClass0 < probabilityOfClass1) { // applies decision rule
 			dp.assignClass(1);
 			assignedClass = 1;
@@ -162,13 +272,54 @@ vector<vector<double> > initialIntervals(int L, DataSet *trainingSet) {
 	return intervalLeftBounds;
 }
 
+
+double Quantizer::generateEstimate(DataSet *estimateSet) {
+	int c00 = 0;
+	int c01 = 0;
+	int c10 = 0;
+	int c11 = 0;
+	int assignedClass = -1;
+	int trueClass = -1;
+	vector<DataPoint> dpVect = estimateSet->getSet();
+	for (unsigned i = 0 ; i < dpVect.size() ; i++) { //goes through vector<dataPoint>
+		DataPoint dp = dpVect.at(i);
+		trueClass = dp.getTrueClass();
+		vector<int> binNumber = getBinNumber(dp, leftIntervalBounds);
+		string binKey = getBinKey(binNumber);
+		double binGivenClass0 = (double) decisionRuleClass0[binKey] / priors.at(0);
+		double binGivenClass1 = (double) decisionRuleClass1[binKey] / priors.at(1);
+		double probabilityOfClass0 = priors.at(2) * binGivenClass0;
+		double probabilityOfClass1 = priors.at(3) * binGivenClass1;
+		if (probabilityOfClass0 < probabilityOfClass1) { // applies decision rule
+			dp.assignClass(1);
+			assignedClass = 1;
+		} else {
+			dp.assignClass(0);
+			assignedClass = 0;
+		}
+		if (assignedClass == trueClass) { // increments confusion matrix entries
+			if (assignedClass == 1) {
+				c11++;
+			} else {
+				c00++;
+			}
+		} else if (trueClass == 0) { // here the assignedClass is 1
+			c01++;
+		} else {
+			c10++;
+		}
+	}
+	double probabilityOfCorrectIdentification = (double) c00 + (double) c11;
+	probabilityOfCorrectIdentification = probabilityOfCorrectIdentification/estimateSet->getSet().size();
+	return probabilityOfCorrectIdentification;
+}
+
 // this is one iteration of the T optimizations we will run to optimize the quantizer
-// this should return a quantizer???
-double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet *trainingSet, DataSet *estimateSet, vector<double> classPriors) {
+//may have to change the initial Intervals to a pointer if the changes dont remain once function is over
+double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet *trainingSet, vector<double> classPriors) {
 	double changeInProbOfCorrectIdentification = 1;
 	double Lbest = 0;
 		while (changeInProbOfCorrectIdentification < 0.001) {
-
 
 		int j = rand() % 5 + 1; // random component
 
@@ -202,8 +353,10 @@ double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet 
 			bnew = bnew + delta; // perturbs the bound value appropriately
 			// need to put the new value into the vector for computation
 			initialIntervals.at(j).at(k)=bnew;
-			map<string,int> binProbabilities = calculateBinProbabilities(trainingSet, initialIntervals);//calculateBinProbabilities();
-			double probabilityOfCorrectIdentification = bayesProbability(binProbabilities, classPriors, estimateSet, initialIntervals);
+			map<string,int> binProbClass0;
+			map<string,int> binProbClass1;
+			calculateBinProbabilities(trainingSet, initialIntervals, binProbClass0, binProbClass1);//calculateBinProbabilities();
+			double probabilityOfCorrectIdentification = bayesProbability(binProbClass0, binProbClass1, classPriors, trainingSet, initialIntervals);
 			if (m == 0) {
 				preLoopL = probabilityOfCorrectIdentification;
 			}
@@ -219,41 +372,68 @@ double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet 
 	return Lbest;
 }
 
-//TODO, this is a rough outline of how we want quantizer to work
-void quantize(int L, int T, DataSet *trainingSet, DataSet *estimateSet) {
+//TODO this changes qBest into the best quantizer associated to L
+// returns the interval bounds associated to the best decision rule
+vector<vector<double> > quantize(int L, int T, DataSet *trainingSet, Quantizer *qBest) {
+	cout << "optimizing bounds" << endl;
+	vector<double> priors = calculatePriors(trainingSet);
+	vector<vector<double> > initialInt = initialIntervals(L,trainingSet);
+	double probCorrect = 0;
+	double PcL = 0;
+	map<string,int> binProbClass0;
+	map<string,int> binProbClass1;
+	qBest->reSet(L,probCorrect,priors,binProbClass0,binProbClass1);
 
-	//double prCorrectForL = 0;
-	double prLbest = 0;
-
-	//CALCULATE CLASS PRIORS
-	vector<double> classPriors = calculatePriors(trainingSet);
-
-	//gets initial intervals
-	vector<vector<double> > initialLeftBounds = initialIntervals(L, trainingSet);
-
-	// runs greedy algorithm T times, saves best L and the decision rule etc.
 	for (int i = 0 ; i < T ; i++) {
-		//prCorrectForL = greedyAlgorithm(initialLeftBounds,L,&estimateSet);
-		if (prLbest == 0) {
-			//Lbest = Quantizer(L, prLbest, classPriors.at(0), classPriors.at(1),);
+		probCorrect = greedyAlgorithm(initialInt,L,trainingSet,priors);
+		if (probCorrect > PcL) {
+			qBest->reSet(L,probCorrect,priors,binProbClass0,binProbClass1);
 		}
 	}
-	//returns a quantizer! for L
-	// will do the actual quantization for L bins/component.
-	// I am not sure what it should return, I could create another object that holds the L
-	// probability of correct identification and the optimized quantizing interval boundaries for this L?
-	// I don't know about this one
+	return initialInt;
 }
 
-double quantizerDriver(vector<int> Lvalues) {
-	return 0;
+//TODO
+Quantizer quantizerDriver(vector<int> Lvalues, DataSet *trainingSet, DataSet *estimateSet) {
+	cout << "in driver" << endl;
+	map<string,int> binClass0;
+	map<string,int> binClass1;
+	int Lbest = 0;
+	double qNewEstimateOfCorrect;
+	double LbestEstimateOfCorrect = 0;
+	Quantizer qNew = Quantizer(0,0,{0},binClass0,binClass1);
+	Quantizer qBest = Quantizer(0,0,{0},binClass0,binClass1);
+	for (unsigned i = 0 ; i < Lvalues.size() ; i++) {
+		vector<vector<double> > optimalBounds = quantize(Lvalues.at(i),10,trainingSet,&qNew);
+		// test my quantizer on data set 2
+		qNewEstimateOfCorrect = qNew.generateEstimate(estimateSet);
+		if (qNewEstimateOfCorrect > LbestEstimateOfCorrect) {
+			qBest = qNew;
+			Lbest = Lvalues.at(i);
+		}
+		cout << "For this round: L is " << Lvalues.at(i) << "and the Probability of Correct Identification is" << qNew.getProb() << endl;
+	}
+	cout << "The Best L is " << Lbest << "with error estimate of " << endl;
+	return qBest;
+}
+
+Quantizer trainEstimateTestQuantizer(vector<int> Lvalues, DataSet *trainingSet, DataSet *estimateSet, DataSet *testingSet) {
+	Quantizer bestQuantEver = quantizerDriver(Lvalues, trainingSet, estimateSet);
+	cout << "Have the best quantizer " << endl;
+	double finalTestCorrectness = bestQuantEver.generateEstimate(testingSet);
+	bestQuantEver.setFinalTestCorrectness(finalTestCorrectness);
+	return bestQuantEver;
 }
 
 int main() {
-	map<string,int> binProb;
-	binProb["hello"] = 7;
-	int a = binProb["hello"];
-	cout << a << endl;
-	cout << "hi" << endl;
+	DataSet trainingSet;
+	DataSet estimateSet;
+	DataSet testingSet;
+	readFile(&trainingSet, &estimateSet, &testingSet);
+	cout << "Data Read" << endl;
+	vector<int> Lvalues = {1,2,3,4,5,6,7,8,9,10};
+	Quantizer theQuantizer = trainEstimateTestQuantizer(Lvalues, &trainingSet, &estimateSet, &testingSet);
+	theQuantizer.printQuantizer();
 	return 0;
+
 }

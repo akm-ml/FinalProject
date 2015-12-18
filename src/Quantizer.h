@@ -20,18 +20,26 @@
 class Quantizer {
 
 public:
-	Quantizer(int L, double pr, double prc0, double prc1, map<string,int> binProbabilities);
+	Quantizer(int L, double pr, vector<double> priorProb, map<string,int> binProbabilitiesClass0, map<string,int> binProbabilitiesClass1);
 	virtual ~Quantizer();
-
+	void reSet(int L, double pr, vector<double> priorProb, map<string,int> binProbabilitiesClass0, map<string,int> binProbabilitiesClass1);
+	double getProb();
+	vector<double> getPriors();
+	double generateEstimate(DataSet *estimateSet);
+	void setFinalTestCorrectness(double ftc);
+	void printQuantizer();
 
 private:
 	int quantizedLevelsPerComponent; // the best one so far
 	double probabilityOfCorrectIdentification; //this is just the one associated with Lbest
-	double priorClass0; // change into hash map
+	vector<double> priors; // change into hash map
 	// this is the decision rule table for class0 where each i,j entry holds the
 	// value we compare for the bayes rule
-	double priorClass1; // change into hash map
-	map<string,int> decisionRule;
+	 // change into hash map
+	map<string,int> decisionRuleClass0;
+	map<string,int> decisionRuleClass1;
+	vector<vector<double> > leftIntervalBounds;
+	double finalTestCorrectness = 0;
 };
 
 

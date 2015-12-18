@@ -20,6 +20,10 @@ vector<DataPoint> DataSet::getSet() {
 	return set;
 }
 
+void DataSet::setSet(vector<DataPoint> dpVect) {
+	set = dpVect;
+}
+
 void DataSet::createComponentSet() { // not sure about the bounds for my counter here
 	for (unsigned int i = 0 ; i < 5 ; i++) {
 		DataPoint dp = set.at(i);
