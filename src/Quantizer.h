@@ -9,7 +9,7 @@
 #define QUANTIZER_H_
 
 #include "DataSet.h"
-
+#include <map>
 // for a specific L, this structure will hold everything specific to that quantizer
 //such as L, probability of correct identification, the bayes rule (i.e. bin probabilities or class tables)
 //and the quantized interval boundaries required for testing
@@ -20,17 +20,18 @@
 class Quantizer {
 
 public:
-	Quantizer();
+	Quantizer(int L, double pr, double prc0, double prc1, map<string,int> binProbabilities);
 	virtual ~Quantizer();
 
 
 private:
 	int quantizedLevelsPerComponent; // the best one so far
 	double probabilityOfCorrectIdentification; //this is just the one associated with Lbest
-	vector<vector<double> > bayesTableForClass0;
+	double priorClass0; // change into hash map
 	// this is the decision rule table for class0 where each i,j entry holds the
 	// value we compare for the bayes rule
-	vector<vector<double> > bayesTableForClass1; // same for class 1
+	double priorClass1; // change into hash map
+	map<string,int> decisionRule;
 };
 
 
