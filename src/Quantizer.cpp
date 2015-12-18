@@ -119,7 +119,7 @@ double bayesProbability(map<string,int> binProbabilities, vector<double> classPr
 		trueClass = dp.getTrueClass();
 		vector<int> binNumber = getBinNumber(dp, leftIntervalBounds);
 		string binKey = getBinKey(binNumber);
-		double binProb = (double) binProbabilities[binKey] / estimateSet->getSet().size(); // TODO need to divide by size of set?!?!
+		double binProb = (double) binProbabilities[binKey] / estimateSet->getSet().size();
 		double probabilityOfClass0 = classPriors.at(0) * binProb;
 		double probabilityOfClass1 = classPriors.at(1) * binProb;
 		if (probabilityOfClass0 < probabilityOfClass1) { // applies decision rule
@@ -162,50 +162,65 @@ vector<vector<double> > initialIntervals(int L, DataSet *trainingSet) {
 	return intervalLeftBounds;
 }
 
-// TODO
-// this is one iteration of the M optimizations we will run to optimize the quantizer
+// this is one iteration of the T optimizations we will run to optimize the quantizer
 // this should return a quantizer???
 double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet *trainingSet, DataSet *estimateSet, vector<double> classPriors) {
-	int j = rand() % 5 + 1; // random component
+	double changeInProbOfCorrectIdentification = 1;
+	double Lbest = 0;
+		while (changeInProbOfCorrectIdentification < 0.001) {
 
-	int k = rand() % L + 1; // random bin
 
-	vector<double> componentJ = trainingSet->getComponent(j); // gets the component vector
+		int j = rand() % 5 + 1; // random component
 
-	double bnew = componentJ.at(k); // gets the bin
+		int k = rand() % L + 1; // random bin
 
+		vector<double> componentJ = trainingSet->getComponent(j); // gets the component vector
+
+		double bnew = componentJ.at(k); // gets the bin
+		double bBest = bnew;
+		double preLoopL = 0;
 	// determine minimum distance between bkj
 	//and different bij by going through the jth component
-	double distanceDown = bnew - componentJ.at(k-1);
-	double distanceUp = 0;
-	if (k < L) {
-		distanceUp = componentJ.at(k+1) - bnew;
-	}
+		double distanceDown = bnew - componentJ.at(k-1);
+		double distanceUp = 0;
+		if (k < L) {
+			distanceUp = componentJ.at(k+1) - bnew;
+		}
 	// components are already sorted so we are looking for what kind of M and delta we can use here
 
-	double delta = fRand(distanceDown,distanceUp);
+		double delta = fRand(distanceDown,distanceUp);
 	// small perturbation, between distanceDown and distanceUp
 
-	double maxDistance = min(distanceDown, distanceUp);
+		double maxDistance = min(distanceDown, distanceUp);
 
-	int maxM = (int) floor (maxDistance/(2*delta));
+		int maxM = (int) floor (maxDistance/(2*delta));
 
-	int M = rand() % maxM;
+		int M = rand() % maxM;
 	// small integer between 0 and min(distanceDown,distanceUp)/delta;
 
-	for (int m = 0 ; m <= 2*M ; m++) {
-		bnew = bnew + delta; // perturbs the bound value appropriately
-		// need to put it into the vector
-		map<string,int> binProbabilities = calculateBinProbabilities(trainingSet, initialIntervals);//calculateBinProbabilities();
-		double probabilityOfCorrectIdentification = bayesProbability(binProbabilities, classPriors, estimateSet, initialIntervals);
-		// save expected gain, if higher
+		for (int m = 0 ; m <= 2*M ; m++) {
+			bnew = bnew + delta; // perturbs the bound value appropriately
+			// need to put the new value into the vector for computation
+			initialIntervals.at(j).at(k)=bnew;
+			map<string,int> binProbabilities = calculateBinProbabilities(trainingSet, initialIntervals);//calculateBinProbabilities();
+			double probabilityOfCorrectIdentification = bayesProbability(binProbabilities, classPriors, estimateSet, initialIntervals);
+			if (m == 0) {
+				preLoopL = probabilityOfCorrectIdentification;
+			}
+			if (Lbest < probabilityOfCorrectIdentification) { // this new one classifies better
+				Lbest = probabilityOfCorrectIdentification;
+				bBest = bnew;
+			} // otherwise we do not change the values and continue the loop
+		}
+		changeInProbOfCorrectIdentification = preLoopL - Lbest;
+		// replace the kj with bBest in vector
+		initialIntervals.at(j).at(k)=bBest;
 	}
-	return 0;
+	return Lbest;
 }
 
 //TODO, this is a rough outline of how we want quantizer to work
-// I am having pointer problems....
-void quantize(int L, int M, DataSet *trainingSet, DataSet *estimateSet) {
+void quantize(int L, int T, DataSet *trainingSet, DataSet *estimateSet) {
 
 	//double prCorrectForL = 0;
 	double prLbest = 0;
@@ -216,18 +231,22 @@ void quantize(int L, int M, DataSet *trainingSet, DataSet *estimateSet) {
 	//gets initial intervals
 	vector<vector<double> > initialLeftBounds = initialIntervals(L, trainingSet);
 
-	// runs greedy algorithm M times
-	for (int i = 0 ; i < M ; i++) {
+	// runs greedy algorithm T times, saves best L and the decision rule etc.
+	for (int i = 0 ; i < T ; i++) {
 		//prCorrectForL = greedyAlgorithm(initialLeftBounds,L,&estimateSet);
 		if (prLbest == 0) {
 			//Lbest = Quantizer(L, prLbest, classPriors.at(0), classPriors.at(1),);
 		}
 	}
-
+	//returns a quantizer! for L
 	// will do the actual quantization for L bins/component.
 	// I am not sure what it should return, I could create another object that holds the L
 	// probability of correct identification and the optimized quantizing interval boundaries for this L?
 	// I don't know about this one
+}
+
+double quantizerDriver(vector<int> Lvalues) {
+	return 0;
 }
 
 int main() {
