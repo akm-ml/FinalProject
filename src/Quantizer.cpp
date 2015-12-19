@@ -8,7 +8,7 @@
 
 #include "Quantizer.h"
 #include <random>
-#include <math.h>
+//#include <math.h>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -78,7 +78,7 @@ bool readFile(DataSet *trainingSet, DataSet *estimateSet, DataSet *testingSet) {
 	vector<DataPoint> estimateDataVector;
 	vector<DataPoint> testingDataVector;
 	int Counter = 0;
-    while (!file.eof()) // reads until the end of th efile
+    while (!file.eof()) // reads until the end of the file
     {
 
             vector<double> tempVecFirst; // temporary values to store the first 33333 datapoints of file
@@ -115,6 +115,8 @@ bool readFile(DataSet *trainingSet, DataSet *estimateSet, DataSet *testingSet) {
                  // place into FileInput line by line using the temporary vectors
             	DataPoint dp = DataPoint({tempVecFirst.at(0),tempVecFirst.at(1),tempVecFirst.at(2),tempVecFirst.at(3),tempVecFirst.at(4)} , tempVecFirst.at(5));
             	trainingDataVector.push_back(dp);
+            	cout << "created data point that has size " << dp.getDataVector().size() << endl;
+            	cout << "training Data now has " << trainingDataVector.size() << endl;
             }
             else if(Counter > 3333332 && Counter < 6666666) {
             	DataPoint dp = DataPoint({tempVecSecond.at(0),tempVecSecond.at(1),tempVecSecond.at(2),tempVecSecond.at(3),tempVecSecond.at(4)} , tempVecSecond.at(5));
@@ -128,8 +130,11 @@ bool readFile(DataSet *trainingSet, DataSet *estimateSet, DataSet *testingSet) {
 
     }
     trainingSet->setSet(trainingDataVector);
+    cout << "training set size " << trainingSet->getSet().size() << endl;;
     estimateSet->setSet(estimateDataVector);
+    cout << "estimate set size " << estimateSet->getSet().size() << endl;
     testingSet->setSet(testingDataVector);
+    cout << "testing set size " << testingSet->getSet().size() << endl;
     trainingSet->createComponentSet();
     trainingSet->sortComponentSet();
     estimateSet->createComponentSet();
@@ -149,9 +154,11 @@ double fRand(double fMin, double fMax)
 
 // takes as input a data set and calculates the prior probabilities of class0 and class1
 vector<double> calculatePriors(DataSet *ds) {
+	cout << "in calculate priors" << endl;
 	double class0Count = 0, class1Count = 0;
 	int currentClass = -1;
 	for (unsigned i = 0 ; i < ds->getSet().size() ; i++) {
+		cout << "in loop for " << i << endl;
 		currentClass = ds->getSet().at(i).getTrueClass();
 		if (currentClass == 0) {
 			class0Count++;
@@ -164,6 +171,7 @@ vector<double> calculatePriors(DataSet *ds) {
 	retVector.push_back(class0Count);
 	class1Count = class1Count/ds->getSet().size();
 	retVector.push_back(class1Count);
+	cout << "done calculating priors" << endl;
 	return retVector;
 }
 
@@ -453,8 +461,8 @@ int main() {
 //	vector<DataPoint> dpV = {dp,dp2,dp3,dp4,dp5};
 //	DataSet GODDAMN = DataSet();
 //	GODDAMN.setSet(dpV);
-////	GODDAMN.createComponentSet();
-////	GODDAMN.sortComponentSet();
+//	GODDAMN.createComponentSet();
+//	GODDAMN.sortComponentSet();
 //	vector<DataPoint> dpV2 = {dp3,dp2,dp,dp,dp5};
 //	DataSet GODDAMN2 = DataSet();
 //	GODDAMN2.setSet(dpV2);
