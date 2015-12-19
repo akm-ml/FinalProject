@@ -25,6 +25,7 @@ public:
 	void reSet(int L, double pr, vector<double> priorProb, map<string,int> binProbabilitiesClass0, map<string,int> binProbabilitiesClass1);
 	double getProb();
 	vector<double> getPriors();
+	void setIntervalBounds(vector<vector<double> > intervalB);
 	double generateEstimate(DataSet *estimateSet);
 	void setFinalTestCorrectness(double ftc);
 	void printQuantizer();

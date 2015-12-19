@@ -9,7 +9,11 @@
 #include <algorithm>
 
 DataSet::DataSet() {
-
+	vector<double> componentOne = {0};
+	vector<double> componentTwo = {0};
+	vector<double> componentThree = {0};
+	vector<double> componentFour = {0};
+	vector<double> componentFive = {0};
 }
 
 DataSet::~DataSet() {
@@ -28,11 +32,11 @@ void DataSet::createComponentSet() { // not sure about the bounds for my counter
 	for (unsigned int i = 0 ; i < 5 ; i++) {
 		DataPoint dp = set.at(i);
 		vector<double> dataVector = dp.getDataVector();
-		componentOne.push_back(dataVector.at(1));
-		componentTwo.push_back(dataVector.at(2));
-		componentThree.push_back(dataVector.at(3));
-		componentFour.push_back(dataVector.at(4));
-		componentFive.push_back(dataVector.at(5));
+		componentOne.push_back(dataVector.at(0));
+		componentTwo.push_back(dataVector.at(1));
+		componentThree.push_back(dataVector.at(2));
+		componentFour.push_back(dataVector.at(3));
+		componentFive.push_back(dataVector.at(4));
 	}
 }
 
@@ -56,5 +60,4 @@ void DataSet::sortComponentSet() {
 	sort(componentThree.begin(),componentThree.end());
 	sort(componentFour.begin(),componentFour.end());
 	sort(componentFive.begin(),componentFive.end());
-
 }
