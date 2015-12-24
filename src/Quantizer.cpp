@@ -8,10 +8,11 @@
 
 #include "Quantizer.h"
 #include <random>
-//#include <math.h>
+#include <math.h>
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <time.h>
 
 Quantizer::Quantizer(int L, double pr, vector<double> priorProb, map<string,int> binProbabilitiesClass0, map<string,int> binProbabilitiesClass1) {
 	quantizedLevelsPerComponent = L;
@@ -115,8 +116,8 @@ bool readFile(DataSet *trainingSet, DataSet *estimateSet, DataSet *testingSet) {
                  // place into FileInput line by line using the temporary vectors
             	DataPoint dp = DataPoint({tempVecFirst.at(0),tempVecFirst.at(1),tempVecFirst.at(2),tempVecFirst.at(3),tempVecFirst.at(4)} , tempVecFirst.at(5));
             	trainingDataVector.push_back(dp);
-            	cout << "created data point that has size " << dp.getDataVector().size() << endl;
-            	cout << "training Data now has " << trainingDataVector.size() << endl;
+            	//cout << "created data point that has size " << dp.getDataVector().size() << endl;
+            	//cout << "training Data now has " << trainingDataVector.size() << endl;
             }
             else if(Counter > 3333332 && Counter < 6666666) {
             	DataPoint dp = DataPoint({tempVecSecond.at(0),tempVecSecond.at(1),tempVecSecond.at(2),tempVecSecond.at(3),tempVecSecond.at(4)} , tempVecSecond.at(5));
@@ -137,10 +138,10 @@ bool readFile(DataSet *trainingSet, DataSet *estimateSet, DataSet *testingSet) {
     cout << "testing set size " << testingSet->getSet().size() << endl;
     trainingSet->createComponentSet();
     trainingSet->sortComponentSet();
-    estimateSet->createComponentSet();
-    estimateSet->sortComponentSet();
-    testingSet->createComponentSet();
-    testingSet->sortComponentSet();
+    //estimateSet->createComponentSet();
+    //estimateSet->sortComponentSet();
+    //testingSet->createComponentSet();
+    //testingSet->sortComponentSet();
 	// this we want to read the data file and create three DataSets, trainingSet, experimentSet and finalSet
 	// will return 1 if it worked, 0 if not
 	return 1;
@@ -155,11 +156,12 @@ double fRand(double fMin, double fMax)
 // takes as input a data set and calculates the prior probabilities of class0 and class1
 vector<double> calculatePriors(DataSet *ds) {
 	cout << "in calculate priors" << endl;
+	vector<DataPoint> dpVect = ds->getSet();
 	double class0Count = 0, class1Count = 0;
 	int currentClass = -1;
-	for (unsigned i = 0 ; i < ds->getSet().size() ; i++) {
-		cout << "in loop for " << i << endl;
-		currentClass = ds->getSet().at(i).getTrueClass();
+	for (unsigned i = 0 ; i < dpVect.size() ; i++) {
+		//cout << "in loop for " << i << endl;
+		currentClass = dpVect.at(i).getTrueClass();
 		if (currentClass == 0) {
 			class0Count++;
 		} else {
@@ -167,11 +169,12 @@ vector<double> calculatePriors(DataSet *ds) {
 		}
 	}
 	vector<double> retVector = {class0Count,class1Count};
-	class0Count = class0Count/ds->getSet().size();
+	class0Count = class0Count/dpVect.size();
 	retVector.push_back(class0Count);
-	class1Count = class1Count/ds->getSet().size();
+	class1Count = class1Count/dpVect.size();
 	retVector.push_back(class1Count);
-	cout << "done calculating priors" << endl;
+	cout << "Priors" << retVector.at(0) << ", " << retVector.at(1) << ", " << retVector.at(2) << ", " << retVector.at(3) << endl;
+	//cout << "done calculating priors" << endl;
 	return retVector;
 }
 
@@ -218,35 +221,42 @@ vector<int> getBinNumber(DataPoint dp, vector<vector<double> > intervalLeftBound
 //inputs the training data set and calculates the bin probabilities for that training data
 // by iterating through the data points, finding the quantized bin it is in
 // and ++ the counter in the mapped value of the associated key
-void calculateBinProbabilities(DataSet *trainingData, vector<vector<double> > leftIntervalBounds, map<string,int> binProbClass0, map<string,int> binProbClass1) {
+void calculateBinProbabilities(DataSet *trainingData, vector<vector<double> > *leftIntervalBounds, map<string,int> *binProbClass0, map<string,int> *binProbClass1) {
+	//cout << "calculating bin probabilities" << endl;
 	vector<DataPoint> trainingSet = trainingData->getSet();
+	binProbClass0->clear();
+	binProbClass1->clear();
 	for (unsigned int i = 0 ; i < trainingSet.size(); i++) {
 		DataPoint dp = trainingSet.at(i);
-		vector<int> binNumber = getBinNumber(dp, leftIntervalBounds); // find out what bin it is in;
+		vector<int> binNumber = getBinNumber(dp, *leftIntervalBounds); // find out what bin it is in;
 		string binKey = getBinKey(binNumber); // gets the key for the map
 		if (dp.getTrueClass() == 0) { // increments respective counters
-			binProbClass0[binKey]++;
+			(*binProbClass0)[binKey]++;
 		} else {
-			binProbClass1[binKey]++;
+			(*binProbClass1)[binKey]++;
 		}
 	}
+	//cout << "calculated bin probabilities" << endl;
 }
 
 //inputs the map for the decision rule, prior probabilities, trainingSet (the second 2/3 of the data)
-double bayesProbability(map<string,int> binProbClass0, map<string,int> binProbClass1, vector<double> classPriors, DataSet *estimateSet, vector<vector<double> > leftIntervalBounds) {
+double bayesProbability(map<string,int> *binProbClass0, map<string,int> *binProbClass1, vector<double> classPriors, DataSet *estimateSet, vector<vector<double> > *leftIntervalBounds) {
+	//cout << "in bayes probability" << endl;
 	int c00 = 0;
 	int c01 = 0;
 	int c10 = 0;
 	int c11 = 0;
 	int assignedClass = -1;
 	int trueClass = -1;
-	for (unsigned i = 0 ; i < estimateSet->getSet().size() ; i++) { //goes through vector<dataPoint>
-		DataPoint dp = estimateSet->getSet().at(i);
+	vector<DataPoint> estimateDPvect = estimateSet->getSet();
+	for (unsigned i = 0 ; i < estimateDPvect.size() ; i++) { //goes through vector<dataPoint>
+		DataPoint dp = estimateDPvect.at(i);
 		trueClass = dp.getTrueClass();
-		vector<int> binNumber = getBinNumber(dp, leftIntervalBounds);
+		vector<int> binNumber = getBinNumber(dp, *leftIntervalBounds);
 		string binKey = getBinKey(binNumber);
-		double binGivenClass0 = (double) binProbClass0[binKey] / classPriors.at(0);
-		double binGivenClass1 = (double) binProbClass1[binKey] / classPriors.at(1);
+		double binGivenClass0 = (double) (*binProbClass0)[binKey] / classPriors.at(0);
+		double binGivenClass1 = (double) (*binProbClass1)[binKey] / classPriors.at(1);
+		//cout << "bin given c0: " << binGivenClass0 << " and bin given c1: " << binGivenClass1 << endl;
 		double probabilityOfClass0 = classPriors.at(2) * binGivenClass0;
 		double probabilityOfClass1 = classPriors.at(3) * binGivenClass1;
 		if (probabilityOfClass0 < probabilityOfClass1) { // applies decision rule
@@ -269,44 +279,57 @@ double bayesProbability(map<string,int> binProbClass0, map<string,int> binProbCl
 		}
 	}
 	double probabilityOfCorrectIdentification = (double) c00 + (double) c11;
+	//cout << "counts for prci" << probabilityOfCorrectIdentification << endl;
 	probabilityOfCorrectIdentification = probabilityOfCorrectIdentification/estimateSet->getSet().size();
+	//cout << "probability of correct identification is " << probabilityOfCorrectIdentification << endl;
 	return probabilityOfCorrectIdentification;
 }
 
 vector<vector<double> > initialIntervals(int L, DataSet *trainingSet) {
-	trainingSet->sortComponentSet(); // we have a sorted list of component sets here
+	//cout << "in initial intervals" << endl;
+	//trainingSet->sortComponentSet(); // we have a sorted list of component sets here
 	int N = trainingSet->getSet().size(); // this is to determine N in the notes
 	vector<double> zero = {0}; // this initializes the left boundary for the first quant interval at 0 for all 5 dims
 	vector<vector<double> > intervalLeftBounds = {zero,zero,zero,zero,zero};
-	vector<double> componentOne = trainingSet->getComponent(1);// initialize at 0 for all 5 dimensions?
-	vector<double> componentTwo = trainingSet->getComponent(2);
-	vector<double> componentThree = trainingSet->getComponent(3);
-	vector<double> componentFour = trainingSet->getComponent(4);
-	vector<double> componentFive = trainingSet->getComponent(5);
+	vector<double> * componentOne = trainingSet->getComponent(1);// initialize at 0 for all 5 dimensions?
+	//cout << "have component one: " << componentOne->size() << endl;
+	vector<double> * componentTwo = trainingSet->getComponent(2);
+	//cout << "have component two" << endl;
+	vector<double> * componentThree = trainingSet->getComponent(3);
+	//cout << "have component three" << endl;
+	vector<double> * componentFour = trainingSet->getComponent(4);
+	//cout << "have component four" << endl;
+	vector<double> * componentFive = trainingSet->getComponent(5);
+	//cout << "have component five" << endl ;
 	int counter = N/L;
+	cout << counter << endl;
 	for (int k = 1 ; k < L ; k++) { // iterates through the bounds, partitions into L
+		cout << "doing interval " << k << endl;
 		int index = k*counter;
-		intervalLeftBounds.at(0).push_back(componentOne.at(index));
-		intervalLeftBounds.at(1).push_back(componentTwo.at(index));
-		intervalLeftBounds.at(2).push_back(componentThree.at(index));
-		intervalLeftBounds.at(3).push_back(componentFour.at(index));
-		intervalLeftBounds.at(4).push_back(componentFive.at(index));
+		//cout << index << endl;
+		intervalLeftBounds.at(0).push_back(componentOne->at(index));
+		intervalLeftBounds.at(1).push_back(componentTwo->at(index));
+		intervalLeftBounds.at(2).push_back(componentThree->at(index));
+		intervalLeftBounds.at(3).push_back(componentFour->at(index));
+		intervalLeftBounds.at(4).push_back(componentFive->at(index));
 	}
 	return intervalLeftBounds;
 }
 
 
 double Quantizer::generateEstimate(DataSet *estimateSet) {
+	cout << "in generate estimate" << endl;
 	int c00 = 0;
 	int c11 = 0;
 	int assignedClass = -1;
 	int trueClass = -1;
 	vector<DataPoint> dpVect = estimateSet->getSet();
+	cout << "size of dpVect " << dpVect.size() << endl;
 	for (unsigned i = 0 ; i < dpVect.size() ; i++) { //goes through vector<dataPoint>
 
 		DataPoint dp = dpVect.at(i);
 		trueClass = dp.getTrueClass();
-		cout << trueClass << endl;
+		//cout << trueClass << endl;
 		vector<int> binNumber = getBinNumber(dp, leftIntervalBounds);
 		string binKey = getBinKey(binNumber);
 		double binGivenClass0 = (double) decisionRuleClass0[binKey] / priors.at(0);
@@ -330,57 +353,65 @@ double Quantizer::generateEstimate(DataSet *estimateSet) {
 	}
 	double probabilityOfCorrectIdentification = (double) c00 + (double) c11;
 	probabilityOfCorrectIdentification = probabilityOfCorrectIdentification/dpVect.size();
-	cout << "done" << endl;
+	cout << "done generating estimates" << endl;
 	return probabilityOfCorrectIdentification;
 }
 
 // this is one iteration of the T optimizations we will run to optimize the quantizer
 //may have to change the initial Intervals to a pointer if the changes dont remain once function is over
-double greedyAlgorithm(vector<vector<double> > initialIntervals, int L, DataSet *trainingSet, vector<double> classPriors) {
+double greedyAlgorithm(vector<vector<double> > *initialIntervals, int L, DataSet *trainingSet, vector<double> classPriors, double lastRunPrCorrect) {
 	double changeInProbOfCorrectIdentification = 1;
-	double Lbest = 0;
-		while (changeInProbOfCorrectIdentification > 0.01) {
+	double Lbest = lastRunPrCorrect;
+	double probabilityOfCorrectIdentification;
+		while (changeInProbOfCorrectIdentification > 0.001) {
 
 		int j = rand() % 5;// + 1; // random component
 
 		int k = rand() % L;// + 1; // random bin
 
-		vector<double> componentJ = trainingSet->getComponent(j); // gets the component vector
+		//vector<double> componentJ = trainingSet->getComponent(j); // gets the component vector
 
-		double bnew = componentJ.at(k); // gets the bin
+		double bnew = initialIntervals->at(j).at(k); // gets the bin
 		double bBest = bnew;
-		double preLoopL = 0;
-	// determine minimum distance between bkj
-	//and different bij by going through the jth component
-
+	//	double preLoopL = lastRunPrCorrect;
+		//cout << "selected bin (" << j ", " << k << ")" << endl;
+		cout << "(j,k)" << j <<", " << k << " which has boundary " << bnew << " which is " << trainingSet->getComponent(j)->at(k) << endl;
 		double dDown;
 		if (k > 0) {
-			dDown = bnew - componentJ.at(k);
+			dDown = bnew - initialIntervals->at(j).at(k-1);
 		} else { dDown = bnew - 0; }
-		double dUp = componentJ.at(k+1) - bnew;
+		double dUp;
+		if (k < L-1) {
+			dUp = initialIntervals->at(j).at(k+1) - bnew;
+		} else { dUp = 1 - bnew; }
 		int M = rand() % 20;
+		cout << "Ddown Dup are " << dDown << ", " << dUp << endl;
 		double maxDistance = min(dDown,dUp);
+		cout << "maxDistance = " << maxDistance << endl;
 		double delta = fRand(-maxDistance/(2*M), maxDistance/(2*M));
-
+		cout << "have to run greedy algo loop " << 2*M << " times, with delta equal to " << delta << endl;
 		for (int m = 0 ; m <= 2*M ; m++) {
+			cout << " in greedy algorithm loop for " << m << endl;
 			bnew = bnew + delta; // perturbs the bound value appropriately
 			// need to put the new value into the vector for computation
-			initialIntervals.at(j).at(k)=bnew;
+			initialIntervals->at(j).at(k)=bnew;
 			map<string,int> binProbClass0;
 			map<string,int> binProbClass1;
-			calculateBinProbabilities(trainingSet, initialIntervals, binProbClass0, binProbClass1);//calculateBinProbabilities();
-			double probabilityOfCorrectIdentification = bayesProbability(binProbClass0, binProbClass1, classPriors, trainingSet, initialIntervals);
-			if (m == 0) {
-				preLoopL = probabilityOfCorrectIdentification;
-			}
+			calculateBinProbabilities(trainingSet, initialIntervals, &binProbClass0, &binProbClass1);//calculateBinProbabilities();
+			probabilityOfCorrectIdentification = bayesProbability(&binProbClass0, &binProbClass1, classPriors, trainingSet, initialIntervals);
+//			if (m == 0) {
+//				preLoopL = probabilityOfCorrectIdentification;
+//			}
 			if (Lbest < probabilityOfCorrectIdentification) { // this new one classifies better
 				Lbest = probabilityOfCorrectIdentification;
+				cout << "Lbest, i.e. old prob is " << Lbest << ", and new prob is " << probabilityOfCorrectIdentification << endl;
 				bBest = bnew;
 			} // otherwise we do not change the values and continue the loop
+			cout << "probability of correct id is "<< Lbest << endl;
 		}
-		changeInProbOfCorrectIdentification = preLoopL - Lbest;
+		changeInProbOfCorrectIdentification = abs(probabilityOfCorrectIdentification - Lbest);
 		// replace the kj with bBest in vector
-		initialIntervals.at(j).at(k)=bBest;
+		initialIntervals->at(j).at(k)=bBest;
 	}
 	return Lbest;
 }
@@ -398,15 +429,20 @@ vector<vector<double> > quantize(int L, int T, DataSet *trainingSet, Quantizer *
 	map<string,int> binProbClass0;
 	map<string,int> binProbClass1;
 	qBest->reSet(L,probCorrect,priors,binProbClass0,binProbClass1);
-
+	cout << "going to run greedy for " << T << " times" << endl;
 	for (int i = 0 ; i < T ; i++) {
 		cout << "starting greedy for " << i << "run" << endl;
-		probCorrect = greedyAlgorithm(initialInt,L,trainingSet,priors);
-		cout << "done" << endl;
+		if (i == 0) {
+			PcL = greedyAlgorithm(&initialInt, L, trainingSet, priors, 0);
+		}
+		probCorrect = greedyAlgorithm(&initialInt,L,trainingSet,priors, PcL);
+		cout << "done for " << i << endl;
 		cout << probCorrect << "is probCorrect for the " << i << " iteration of greedy Alg" << endl;
 		if (probCorrect > PcL) {
+			calculateBinProbabilities(trainingSet, &initialInt, &binProbClass0, &binProbClass1);
 			qBest->reSet(L,probCorrect,priors,binProbClass0,binProbClass1);
-		}
+			qBest->setIntervalBounds(initialInt);
+		}//Todo
 	}
 	return initialInt;
 }
@@ -414,13 +450,12 @@ vector<vector<double> > quantize(int L, int T, DataSet *trainingSet, Quantizer *
 //TODO
 Quantizer quantizerDriver(vector<int> Lvalues, DataSet *trainingSet, DataSet *estimateSet) {
 	cout << "in the driver" << endl;
-	map<string,int> binClass0;
-	map<string,int> binClass1;
+	map<string,int> binClass0;	map<string,int> binClass1; map<string,int> binClass02; map<string,int> binClass12;
 	int Lbest = 0;
 	double qNewEstimateOfCorrect;
 	double LbestEstimateOfCorrect = 0;
 	Quantizer qNew = Quantizer(0,0,{0},binClass0,binClass1);
-	Quantizer qBest = Quantizer(0,0,{0},binClass0,binClass1);
+	Quantizer qBest = Quantizer(0,0,{0},binClass02,binClass12);
 	for (unsigned i = 0 ; i < Lvalues.size() ; i++) {
 		vector<vector<double> > optimalBounds = quantize(Lvalues.at(i),10,trainingSet,&qNew);
 		cout << "have the optimal bounds for L" << endl;
@@ -446,39 +481,23 @@ Quantizer trainEstimateTestQuantizer(vector<int> Lvalues, DataSet *trainingSet, 
 }
 
 int main() {
+	srand(time(NULL));
+//	for (int i = 0 ; i < 15 ; i++) {
+//	int M = rand() % 20;
+//	double maxDistance = 1;
+//	//double minDistance = 1;
+//	double delta = fRand(-maxDistance/(2*M), maxDistance/(2*M));
+//	cout << delta << endl;
+//	}
 	DataSet trainingSet;
 	DataSet estimateSet;
 	DataSet testingSet;
 	readFile(&trainingSet, &estimateSet, &testingSet);
 	cout << "Data Read" << endl;
-	//vector<int> Lvalues = {3,4,5,6,7,8,9,10};
+	vector<int> Lvalues = {5};
 
-//	DataPoint dp = DataPoint({.5,.7,.2,.6,.5},0);
-//	DataPoint dp2 = DataPoint({.3,.2,.7,.8,.9},1);
-//	DataPoint dp3 = DataPoint({.4,.3,.2,.6,.5},0);
-//	DataPoint dp4 = DataPoint({.2,.2,.2,.2,.2},1);
-//	DataPoint dp5 = DataPoint({.1,.6,.9,.3,.7}, 0);
-//	vector<DataPoint> dpV = {dp,dp2,dp3,dp4,dp5};
-//	DataSet GODDAMN = DataSet();
-//	GODDAMN.setSet(dpV);
-//	GODDAMN.createComponentSet();
-//	GODDAMN.sortComponentSet();
-//	vector<DataPoint> dpV2 = {dp3,dp2,dp,dp,dp5};
-//	DataSet GODDAMN2 = DataSet();
-//	GODDAMN2.setSet(dpV2);
-//	vector<DataPoint> dpV3 = {dp2,dp4,dp3,dp,dp5};
-//	DataSet GODDAMN3 = DataSet();
-//	GODDAMN3.setSet(dpV3);
-	vector<int> Lvalues = {3};
-//	GODDAMN.createComponentSet();
-//	GODDAMN.sortComponentSet();
-//	GODDAMN2.createComponentSet();
-//	GODDAMN2.sortComponentSet();
-//	GODDAMN3.createComponentSet();
-//	GODDAMN3.sortComponentSet();
 	Quantizer theQuantizer = trainEstimateTestQuantizer(Lvalues, &trainingSet, &estimateSet, &testingSet);
 	theQuantizer.printQuantizer();
-
 	return 0;
 
 

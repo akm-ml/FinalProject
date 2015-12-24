@@ -22,7 +22,7 @@ public:
 	vector<DataPoint> getSet();
 	void setSet(vector<DataPoint> dpVect);
 	void createComponentSet();
-	vector<double> getComponent(int i); // will return the ith component vector
+	vector<double>* getComponent(int i); // will return the ith component vector
 	void sortComponentSet();
 
 private:
