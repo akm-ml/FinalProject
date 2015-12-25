@@ -127,6 +127,7 @@ def mkTestFun(trainDataFile, testDataFile):
 
 miniTest = mkTestFun("miniTrainData", "miniTestData")
 globalTest = mkTestFun("pr_data12", "pr_data3")
+globalTest_bis = mkTestFun("pr_data12b", "pr_data3b")
 
 
 if __name__ == '__main__':
